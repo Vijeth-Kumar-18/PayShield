@@ -6,8 +6,8 @@ import {
   Activity, ShieldAlert, Crosshair, Cpu, Bug, Network, ShieldCheck, 
   Map, TerminalSquare, AlertTriangle, Fingerprint, DatabaseZap, LockOpen
 } from "lucide-react";
-import { logoutAction } from "./actions"; // Wait, I should make sure action imports are accessible
-import { useRouter } from "next/navigation";
+import { logoutAction } from "./actions";
+import { useRouter, useParams } from "next/navigation";
 
 // Mock data generation for our ultra-dashboard
 const generateMockLogs = () => Array.from({ length: 6 }).map((_, i) => ({
@@ -39,6 +39,8 @@ const CardGlow = ({ children, delay = 0, className = "" }) => (
 
 export default function ThreatDashboard() {
   const router = useRouter();
+  const params = useParams();
+  const lang = params?.lang || "en";
   const [logs, setLogs] = useState([]);
   const [honeypots, setHoneypots] = useState(24);
   const [activeThreats, setActiveThreats] = useState(8);
@@ -71,7 +73,7 @@ export default function ThreatDashboard() {
 
   const handleLogout = async () => {
     await logoutAction();
-    router.push("/en/threat/login");
+    router.push(`/${lang}/threat/login`);
   };
 
   const severityColor = (sev) => {
@@ -186,15 +188,15 @@ export default function ThreatDashboard() {
       </div>
 
       {/* MID SECTION - MAP & HONEYPOT LOGS */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 z-10 flex-1">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 z-10 flex-1 min-h-[400px]">
         
         {/* Radar Map Placeholder */}
-        <CardGlow delay={0.5} className="lg:col-span-2 flex flex-col">
+        <CardGlow delay={0.5} className="lg:col-span-2 flex flex-col min-h-[350px]">
            <div className="flex items-center gap-3 mb-6">
               <Map className="w-6 h-6 text-green-400" />
               <h2 className="text-xl font-bold tracking-widest uppercase text-white shadow-[0_0_10px_rgba(0,255,0,0.5)]">Global Threat Vectors</h2>
            </div>
-           <div className="relative flex-1 rounded border border-green-500/30 bg-black/50 overflow-hidden flex items-center justify-center -m-1">
+           <div className="relative flex-1 min-h-[250px] rounded border border-green-500/30 bg-black/50 overflow-hidden flex items-center justify-center -m-1">
                {/* Radar scan simulation */}
                <motion.div animate={{ rotate: 360 }} transition={{ duration: 10, repeat: Infinity, ease: "linear" }} className="absolute w-[40rem] h-[40rem] rounded-full border border-green-500/10 bg-[conic-gradient(from_0deg,transparent_0%,rgba(0,255,0,0.2)_10%,transparent_10%)] mix-blend-screen" />
                <motion.div className="absolute w-2 h-2 bg-red-500 rounded-full shadow-[0_0_15px_rgba(255,0,0,1)]" animate={{ opacity: [1, 0] }} transition={{ duration: 2, repeat: Infinity }} style={{ top: '30%', left: '40%' }} />
@@ -213,7 +215,7 @@ export default function ThreatDashboard() {
         </CardGlow>
 
         {/* Live Attack Feed */}
-        <CardGlow delay={0.6} className="flex flex-col h-full"> 
+        <CardGlow delay={0.6} className="flex flex-col min-h-[350px]"> 
           <div className="flex items-center justify-between mb-6 border-b border-green-500/20 pb-4">
              <div className="flex items-center gap-3">
                 <TerminalSquare className="w-5 h-5 text-green-400" />
@@ -222,7 +224,7 @@ export default function ThreatDashboard() {
              <ShieldAlert className="w-5 h-5 text-red-500 animate-pulse" />
           </div>
 
-          <div className="flex-1 overflow-hidden relative">
+          <div className="flex-1 overflow-y-auto relative max-h-[400px]">
              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/80 z-10 pointer-events-none" />
              <div className="flex flex-col gap-3">
                <AnimatePresence>

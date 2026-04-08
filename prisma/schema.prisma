@@ -1,0 +1,98 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                        String           @id @default(cuid())
+  email                     String           @unique
+  name                      String
+  phone                     String?
+  passwordHash              String
+  spiceSalt                 String
+  balance                   Decimal          @default(0)
+  childhoodWhisperMotherEnc String
+  childhoodWhisperPetEnc    String
+  isFrozen                  Boolean          @default(false)
+  frozenReason              String?
+  genuinityScore            Float?
+  lastKnownCountry          String?
+  lastKnownCity             String?
+  lastKnownIp               String?
+  lastKnownDeviceDna        String?
+  createdAt                 DateTime         @default(now())
+  updatedAt                 DateTime         @updatedAt
+
+  bankCredentials           BankCredential[]
+  transactions              Transaction[]
+  behavioralLogs            BehavioralLog[]
+  securityEvents            SecurityEvent[]
+}
+
+model BankCredential {
+  id                  String   @id @default(cuid())
+  userId              String
+  bankName            String
+  accountHolderName   String
+  encryptedPayload    String
+  createdAt           DateTime @default(now())
+
+  user                User     @relation(fields: [userId], references: [id])
+}
+
+model Transaction {
+  id                   String   @id @default(cuid())
+  userId               String
+  amount               Decimal
+  payee                String
+  status               String   // SUCCESS, FLAGGED, DECLINED, FROZEN
+  ledgerType           String   // REAL, MIRROR
+  locationCountry      String
+  locationCity         String
+  ipAddress            String
+  deviceDna            String
+  browserSignature     String
+  screenResolution     String
+  mlScore              Float?
+  mlReasons            Json?
+  isTransferAllAttempt Boolean  @default(false)
+  createdAt            DateTime @default(now())
+
+  user                 User     @relation(fields: [userId], references: [id])
+}
+
+model BehavioralLog {
+  id                   String   @id @default(cuid())
+  userId               String
+  mouseShakeIntensity  Float
+  scrollSpeed          Float
+  paymentFrequency     Float
+  transferAllIntent    Boolean
+  locationCountry      String
+  locationCity         String
+  ipAddress            String
+  deviceDna            String
+  browserSignature     String
+  screenResolution     String
+  createdAt            DateTime @default(now())
+
+  user                 User     @relation(fields: [userId], references: [id])
+}
+
+model SecurityEvent {
+  id         String   @id @default(cuid())
+  userId     String
+  type       String
+  ipAddress  String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id])
+}

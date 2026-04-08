@@ -4,10 +4,12 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Lock, ShieldAlert, Fingerprint, TerminalSquare, AlertTriangle } from "lucide-react";
 import { loginAction } from "../actions";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 
 export default function ThreatLogin() {
   const router = useRouter();
+  const params = useParams();
+  const lang = params?.lang || "en";
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -24,7 +26,7 @@ export default function ThreatLogin() {
     try {
       const res = await loginAction(formData);
       if (res.success) {
-        router.push("/en/threat"); // Directing to dashboard
+        router.push(`/${lang}/threat`);
       } else {
         setLoading(false);
         setError(res.error);
