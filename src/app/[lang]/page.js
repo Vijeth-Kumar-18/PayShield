@@ -1,15 +1,12 @@
 import Link from 'next/link';
 import FeatureCard from '@/components/FeatureCard';
-<<<<<<< HEAD:src/app/[lang]/page.js
 import { getDictionary } from '@/i18n/getDictionary';
+import AppIcon from '@/components/AppIcon';
 
 export default async function Home(props) {
   const params = await props.params;
   const lang = params?.lang || 'en';
   const dict = await getDictionary(lang);
-=======
-import AppIcon from '@/components/AppIcon';
->>>>>>> 15c0b3eba9c90e33df0e42089ca7c8e99af5a67a:src/app/page.js
 
   return (
     <div>
@@ -62,9 +59,6 @@ import AppIcon from '@/components/AppIcon';
 
           <div className="features-grid">
             <FeatureCard
-<<<<<<< HEAD:src/app/[lang]/page.js
-              icon="???"
-=======
               icon={<AppIcon name="lock" size={22} />}
               title="The Spice Lock"
               description="Triple-layer password encryption with salt, pepper, and cryptographic hashing"
@@ -106,7 +100,6 @@ import AppIcon from '@/components/AppIcon';
             />
             <FeatureCard
               icon={<AppIcon name="timer" size={22} />}
->>>>>>> 15c0b3eba9c90e33df0e42089ca7c8e99af5a67a:src/app/page.js
               title="The Slow Motion Trap"
               description="Intelligent delay system during suspicious activities"
               features={[
@@ -116,11 +109,7 @@ import AppIcon from '@/components/AppIcon';
               ]}
             />
             <FeatureCard
-<<<<<<< HEAD:src/app/[lang]/page.js
-              icon="??"
-=======
               icon={<AppIcon name="dna" size={22} />}
->>>>>>> 15c0b3eba9c90e33df0e42089ca7c8e99af5a67a:src/app/page.js
               title="The Device DNA"
               description="20+ unique device identifiers for foolproof authentication"
               features={[
@@ -130,11 +119,7 @@ import AppIcon from '@/components/AppIcon';
               ]}
             />
             <FeatureCard
-<<<<<<< HEAD:src/app/[lang]/page.js
-              icon="??"
-=======
               icon={<AppIcon name="camera" size={22} />}
->>>>>>> 15c0b3eba9c90e33df0e42089ca7c8e99af5a67a:src/app/page.js
               title="The Behavior Camera"
               description="AI-powered behavioral analytics monitoring user patterns"
               features={[
@@ -144,11 +129,7 @@ import AppIcon from '@/components/AppIcon';
               ]}
             />
             <FeatureCard
-<<<<<<< HEAD:src/app/[lang]/page.js
-              icon="??"
-=======
               icon={<AppIcon name="alert" size={22} />}
->>>>>>> 15c0b3eba9c90e33df0e42089ca7c8e99af5a67a:src/app/page.js
               title="Alert System"
               description="Multi-channel instant notifications when threats are detected"
               features={[

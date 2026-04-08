@@ -1,13 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-<<<<<<< HEAD
 import { useState, useEffect } from 'react';
 import { useParams, usePathname, useRouter } from 'next/navigation';
-=======
-import { useState } from 'react';
 import AppIcon from '@/components/AppIcon';
->>>>>>> 15c0b3eba9c90e33df0e42089ca7c8e99af5a67a
 
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -37,13 +33,8 @@ export default function Navbar() {
   return (
     <nav className="navbar">
       <div className="nav-container">
-<<<<<<< HEAD
         <Link href={`/${currentLang}`} className="logo">
-          <span className="logo-icon">🛡️</span>
-=======
-        <Link href="/" className="logo">
           <span className="logo-icon"><AppIcon name="shieldCheck" size={18} /></span>
->>>>>>> 15c0b3eba9c90e33df0e42089ca7c8e99af5a67a
           <span className="logo-text">PayShield</span>
         </Link>
 

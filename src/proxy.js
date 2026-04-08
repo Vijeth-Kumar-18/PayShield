@@ -13,8 +13,15 @@ function getLocale(request) {
   }
 
   const headersObject = Object.fromEntries(headers.entries());
-  const languages = new Negotiator({ headers: headersObject }).languages();
-  return match(languages, locales, defaultLocale);
+  let languages = new Negotiator({ headers: headersObject }).languages();
+  // Filter out invalid locales like '*'
+  languages = languages.filter(lang => lang !== '*');
+  
+  try {
+    return match(languages, locales, defaultLocale);
+  } catch (e) {
+    return defaultLocale;
+  }
 }
 
 export default function middleware(request) {
