@@ -1,0 +1,21 @@
+CREATE TABLE "users" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"full_name" varchar(255),
+	"email" varchar(255) NOT NULL,
+	"phone" varchar(20) NOT NULL,
+	"password" varchar(255) NOT NULL,
+	"mother_nickname" varchar(255),
+	"first_pet_name" varchar(255),
+	"is_email_verified" boolean DEFAULT false,
+	"is_phone_verified" boolean DEFAULT false,
+	"two_factor_enabled" boolean DEFAULT false,
+	"device_id" varchar(255),
+	"location" varchar(255),
+	"system_info" text,
+	"gsm_info" text,
+	"last_login" timestamp,
+	"created_at" timestamp DEFAULT now(),
+	"updated_at" timestamp DEFAULT now(),
+	CONSTRAINT "users_email_unique" UNIQUE("email"),
+	CONSTRAINT "users_phone_unique" UNIQUE("phone")
+);

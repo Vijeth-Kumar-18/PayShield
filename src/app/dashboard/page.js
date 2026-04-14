@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 // ─── Sidebar nav items ───────────────────────────────────────────────────────
 const NAV_ITEMS = [
@@ -50,7 +51,49 @@ const PROTECTIONS = [
 
 // ─────────────────────────────────────────────────────────────────────────────
 export default function Dashboard() {
+  const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Check if user is logged in
+    const token = localStorage.getItem('token');
+    if (!token) {
+      router.push('/login');
+      return;
+    }
+    
+    // Get user info from localStorage
+    const userEmail = localStorage.getItem('userEmail');
+    const userName = localStorage.getItem('userName');
+    
+    setUser({
+      name: userName || (userEmail ? userEmail.split('@')[0] : 'User'),
+      email: userEmail || 'user@example.com',
+      avatar: (userName || (userEmail ? userEmail.split('@')[0] : 'User')).charAt(0).toUpperCase()
+    });
+    setLoading(false);
+  }, [router]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('userEmail');
+    localStorage.removeItem('userName');
+    window.location.href = '/login';
+  };
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#f1f5f9' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: '48px', marginBottom: '16px' }}>🛡️</div>
+          <div style={{ fontSize: '18px', color: '#64748b' }}>Loading dashboard...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -320,10 +363,10 @@ export default function Dashboard() {
 
           {/* User */}
           <div className="ps-user-block">
-            <div className="ps-avatar">YP</div>
+            <div className="ps-avatar">{user?.avatar || 'U'}</div>
             <div className="ps-user-info">
-              <p>Y G Pavan</p>
-              <small>pavan@payshield.in</small>
+              <p>{user?.name || 'User'}</p>
+              <small>{user?.email || 'user@example.com'}</small>
             </div>
           </div>
 
@@ -344,7 +387,7 @@ export default function Dashboard() {
 
           {/* Logout */}
           <div className="ps-sidebar-bottom">
-            <button className="ps-logout-btn">
+            <button className="ps-logout-btn" onClick={handleLogout}>
               <span>🚪</span> Log Out
             </button>
           </div>
@@ -355,8 +398,8 @@ export default function Dashboard() {
           {/* Top bar */}
           <header className="ps-topbar">
             <div className="ps-topbar-left">
-              <h1>Good morning, Pavan 👋</h1>
-              <p>Friday, 20 March 2026 &nbsp;·&nbsp; All systems secure</p>
+              <h1>Good morning, {user?.name || 'User'} 👋</h1>
+              <p>{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} &nbsp;·&nbsp; All systems secure</p>
             </div>
             <div className="ps-topbar-right">
               <button
