@@ -12,6 +12,8 @@
     "@formatjs/intl-localematcher": "^0.8.2",
     "@neondatabase/serverless": "^1.0.2",
     "@prisma/client": "^6.16.2",
+    "@simplewebauthn/browser": "^13.3.0",
+    "@simplewebauthn/server": "^13.3.0",
     "argon2": "^0.44.0",
     "bcryptjs": "^3.0.3",
     "drizzle-orm": "^0.45.2",
@@ -37,8 +39,8 @@
     "drizzle-kit": "^0.31.10",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
-    "server-only": "^0.0.1",
     "postcss": "^8.5.9",
+    "server-only": "^0.0.1",
     "tailwindcss": "^4.2.2"
   }
 }

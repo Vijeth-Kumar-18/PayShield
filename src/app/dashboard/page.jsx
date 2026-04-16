@@ -66,8 +66,8 @@ export default function Dashboard() {
     }
     
     // Try to get user info from multiple possible localStorage keys
-    let userEmail = localStorage.getItem('userEmail');
-    let userName = localStorage.getItem('userName');
+    let userEmail = localStorage.getItem('userEmail') || localStorage.getItem('ps_user_email');
+    let userName = localStorage.getItem('userName') || localStorage.getItem('ps_user_name');
     
     // If they aren't stored individually, check if there's a user object stored
     const storedUserStr = localStorage.getItem('user');

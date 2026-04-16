@@ -46,8 +46,8 @@ export default function BehavioralThreatsAdmin() {
       return;
     }
     
-    let userEmail = localStorage.getItem('userEmail');
-    let userName = localStorage.getItem('userName');
+    let userEmail = localStorage.getItem('userEmail') || localStorage.getItem('ps_user_email');
+    let userName = localStorage.getItem('userName') || localStorage.getItem('ps_user_name');
     
     const finalName = userName || (userEmail ? userEmail.split('@')[0] : 'User');
     

@@ -12,6 +12,8 @@ import {
   signChallenge
 } from '@/lib/security/clientDevice';
 
+import { startAuthentication } from '@simplewebauthn/browser';
+
 export default function Login() {
   const params = useParams();
   const router = useRouter();
@@ -171,6 +173,63 @@ export default function Login() {
     }
   };
 
+  const handleBiometricLogin = async () => {
+    if (!formData.email) {
+      setMessageType('error');
+      setMessage('Please enter your email address first to use biometrics.');
+      return;
+    }
+
+    setLoading(true);
+    setMessage('Initializing biometric verification...');
+    
+    try {
+      const email = formData.email.trim().toLowerCase();
+      const resp = await fetch(`/api/auth/webauthn/login/generate?email=${encodeURIComponent(email)}`);
+      const options = await resp.json();
+
+      if (!resp.ok) throw new Error(options.error || 'Failed to initialize biometric challenge.');
+
+      setMessage('Waiting for biometric assertion...');
+      const authResp = await startAuthentication({ optionsJSON: options });
+
+      setMessage('Verifying with server...');
+      const vResp = await fetch('/api/auth/webauthn/login/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, authenticationResponse: authResp })
+      });
+      const vData = await vResp.json();
+
+      if (!vResp.ok) throw new Error(vData.error || 'Biometric verification failed.');
+
+      setMessageType('success');
+      setMessage('Biometric login successful. Redirecting...');
+      
+      // Setup typical login locals
+      if (vData.user) {
+        localStorage.setItem('ps_user_id', String(vData.user.id));
+        localStorage.setItem('ps_user_email', vData.user.email);
+        localStorage.setItem('ps_user_name', vData.user.name);
+      }
+
+      setTimeout(() => {
+        router.push(`/${currentLang}/dashboard`);
+      }, 500);
+
+    } catch (e) {
+      console.error(e);
+      setMessageType('error');
+      if (e.message.includes('No biometric credentials registered')) {
+        setMessage('No biometrics found. Please login with your password first, go to Security settings, and click "Enable Biometrics".');
+      } else {
+        setMessage(`Biometric error: ${e.message}`);
+      }
+    } finally {
+      if(!message.includes('Redirecting')) setLoading(false);
+    }
+  };
+
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -239,7 +298,7 @@ export default function Login() {
           </div>
 
           <div className="social-login">
-            <button className="btn btn-social">
+            <button type="button" className="btn btn-social" onClick={handleBiometricLogin} disabled={loading}>
               <span><AppIcon name="scan" size={16} /></span>
               {loginDict.continueWithBiometric || 'Continue with biometric verification'}
             </button>

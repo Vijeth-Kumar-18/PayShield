@@ -24,7 +24,7 @@ export const users = pgTable('users', {
 // Add userSessions table
 export const userSessions = pgTable('user_sessions', {
   id: serial('id').primaryKey(),
-  userId: integer('user_id').references(() => users.id),
+  userId: integer('user_id').references(() => users.id, { onDelete: 'cascade' }),
   sessionToken: varchar('session_token', { length: 255 }).notNull().unique(),
   deviceInfo: jsonb('device_info'),
   ipAddress: varchar('ip_address', { length: 45 }),
@@ -36,7 +36,7 @@ export const userSessions = pgTable('user_sessions', {
 
 export const deviceCredentials = pgTable('device_credentials', {
   id: serial('id').primaryKey(),
-  userId: integer('user_id').references(() => users.id).notNull(),
+  userId: integer('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
   deviceName: varchar('device_name', { length: 255 }).notNull(),
   deviceDna: varchar('device_dna', { length: 255 }).notNull(),
   publicKeyPem: text('public_key_pem').notNull(),
@@ -56,7 +56,7 @@ export const deviceCredentials = pgTable('device_credentials', {
 
 export const loginChallenges = pgTable('login_challenges', {
   id: serial('id').primaryKey(),
-  userId: integer('user_id').references(() => users.id).notNull(),
+  userId: integer('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
   deviceCredentialId: integer('device_credential_id').references(() => deviceCredentials.id),
   challenge: text('challenge').notNull(),
   ipAddress: varchar('ip_address', { length: 45 }),
@@ -71,7 +71,7 @@ export const loginChallenges = pgTable('login_challenges', {
 
 export const behavioralEvents = pgTable('behavioral_events', {
   id: serial('id').primaryKey(),
-  userId: integer('user_id').references(() => users.id),
+  userId: integer('user_id').references(() => users.id, { onDelete: 'cascade' }),
   sessionId: varchar('session_id', { length: 255 }),
   eventType: varchar('event_type', { length: 50 }).notNull(),
   riskScore: integer('risk_score').notNull(),
@@ -79,6 +79,23 @@ export const behavioralEvents = pgTable('behavioral_events', {
   actionTaken: varchar('action_taken', { length: 50 }).notNull(),
   metrics: jsonb('metrics'),
   createdAt: timestamp('created_at').defaultNow(),
+});
+
+export const webauthnCredentials = pgTable('webauthn_credentials', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  credentialId: text('credential_id').notNull().unique(), 
+  publicKey: text('public_key').notNull(),
+  counter: integer('counter').notNull().default(0),
+  transports: jsonb('transports'),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+export const webauthnChallenges = pgTable('webauthn_challenges', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull().unique(),
+  currentChallenge: text('current_challenge').notNull(),
+  updatedAt: timestamp('updated_at').defaultNow(),
 });
 
 export { otpCodes };

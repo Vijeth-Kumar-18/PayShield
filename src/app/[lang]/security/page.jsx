@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import AppIcon from '@/components/AppIcon';
 import { authFetch } from '@/lib/http/authFetch';
+import { startRegistration } from '@simplewebauthn/browser';
 
 export default function Security() {
   const params = useParams();
@@ -16,8 +17,45 @@ export default function Security() {
   });
   const [saveMessage, setSaveMessage] = useState('');
   const [saveError, setSaveError] = useState(false);
+  const [biometricStatus, setBiometricStatus] = useState('');
   const security = dict.security || {};
   const common = dict.common || {};
+
+  const handleEnableBiometrics = async () => {
+    try {
+      setBiometricStatus('Starting registration...');
+      const email = localStorage.getItem('ps_user_email') || localStorage.getItem('ps_user_id'); // Try email
+      if (!email) {
+        setBiometricStatus('Error: User not identified. Please re-login.');
+        return;
+      }
+      
+      const resp = await authFetch(`/api/auth/webauthn/register/generate?email=${encodeURIComponent(email)}`);
+      const options = await resp.json();
+      
+      if (!resp.ok) throw new Error(options.error || 'Failed to get options');
+
+      setBiometricStatus('Verifying locally...');
+      const attResp = await startRegistration({ optionsJSON: options });
+
+      setBiometricStatus('Sending to server...');
+      const vResp = await authFetch('/api/auth/webauthn/register/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, registrationResponse: attResp })
+      });
+      const vData = await vResp.json();
+
+      if (vResp.ok) {
+        setBiometricStatus('Biometrics enabled successfully!');
+      } else {
+        setBiometricStatus(`Error: ${vData.error || 'Verification failed'}`);
+      }
+    } catch (e) {
+      console.error(e);
+      setBiometricStatus(`Error: ${e.message}`);
+    }
+  };
 
   useEffect(() => {
     import(`@/i18n/dictionaries/${currentLang}.json`)
@@ -257,6 +295,18 @@ export default function Security() {
 
           <div className="section">
             <h2 className="section-title-small">{security.additionalTitle || 'Additional Security Options'}</h2>
+            
+            <div className="option-card">
+              <div className="option-info">
+                <h3><AppIcon name="lock" size={14} /> Biometric Passkeys (WebAuthn)</h3>
+                <p>Login securely using your device's built-in scanner (Windows Hello / TouchID), a device PIN, or by linking your smartphone (via QR code) to use its fingerprint/FaceID.</p>
+                {biometricStatus && <p style={{ fontSize: '0.8rem', color: biometricStatus.includes('Error') ? '#b91c1c' : '#166534', marginTop: 4 }}>Status: {biometricStatus}</p>}
+              </div>
+              <button className="btn btn-secondary" onClick={handleEnableBiometrics} disabled={biometricStatus.startsWith('Starting')}>
+                Enable Biometrics
+              </button>
+            </div>
+
             <div className="option-card">
               <div className="option-info">
                 <h3><AppIcon name="mobile" size={14} /> {security.twoFactorTitle || 'Two-Factor Authentication (2FA)'}</h3>
