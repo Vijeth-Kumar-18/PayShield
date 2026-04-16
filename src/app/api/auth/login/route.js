@@ -1,99 +1,95 @@
-import { NextResponse } from 'next/server';
-import { neon } from '@neondatabase/serverless';
-import { comparePassword, generateToken, generateRefreshToken } from '@/lib/auth/utils';
-import { calculateRisk } from '@/lib/behavior/riskCalculator';
-import { db } from '@/lib/db';
-import { behavioralEvents } from '@/lib/db/schema';
-
-const sql = neon(process.env.DATABASE_URL);
+import { NextResponse } from "next/server";
+import { User } from "@/lib/userModel";
+import { LoginHistory } from "@/lib/loginHistoryModel";
+import { generateToken } from "@/lib/auth";
+import {
+  getGeoFromIP, getClientIP,
+  analyzeRisk, requiresExtraVerification,
+} from "@/lib/geoService";
+import { generateOTP, sendGeoVerificationEmail } from "@/lib/emailService";
 
 export async function POST(request) {
   try {
-    const payload = await request.json();
-    const { email, password, deviceDna, ipAddress, locationCountry, locationCity, browserSignature, screenResolution, behaviorData } = payload;
-    
-    // Find user first so we can tie the threat log to their ID if it exists
-    const users = await sql`
-      SELECT * FROM users WHERE email = ${email}
-    `;
-    const user = users[0];
+    const { email, password } = await request.json();
 
-    // Evaluate behavioral risk if metric exists
-    let riskAnalysis = { score: 0, riskLevel: 'LOW', action: 'allow', triggeredRules: [], messages: [] };
-    if (behaviorData) {
-      riskAnalysis = calculateRisk(behaviorData);
-      
-      // Log to Threat Admin Database NOW (before any 403 blocks or 401 kicks)
-      try {
-           await db.insert(behavioralEvents).values({
-               userId: user ? user.id : null, // Null if bot guessed random fake email
-               eventType: 'login',
-               riskScore: riskAnalysis.score,
-               triggeredRules: riskAnalysis.triggeredRules,
-               actionTaken: riskAnalysis.action,
-               metrics: behaviorData
-           });
-       } catch (e) {
-           console.error('Failed logging behavior event', e);
-       }
-
-      if (riskAnalysis.action === 'block') {
-         return NextResponse.json({ error: 'Security systems triggered. Access denied.', messages: riskAnalysis.messages, _debug_blocked_reason: 'CRITICAL_RISK' }, { status: 403 });
-      }
+    if (!email || !password) {
+      return NextResponse.json({ message: "Email and password required" }, { status: 400 });
     }
 
+    const user = await User.findByEmail(email);
     if (!user) {
-      return NextResponse.json({ error: 'Invalid credentials.' }, { status: 401 });
-    }
-    
-    // Verify password
-    const isValid = await comparePassword(password, user.password);
-    if (!isValid) {
-      return NextResponse.json({ error: 'Invalid credentials.' }, { status: 401 });
+      return NextResponse.json({ message: "Invalid credentials" }, { status: 401 });
     }
 
-    if (riskAnalysis.action === 'require_otp') {
-        // Enforce OTP challenge flow directly by telling UI 
-        return NextResponse.json({ 
-             success: true,
-             requiresAdditionalVerification: true,
-             verificationMethod: 'OTP',
-             risk: { score: riskAnalysis.score, reasons: riskAnalysis.messages }
-        });
+    // Lockout check
+    if (User.isLocked(user)) {
+      const minutesLeft = Math.ceil((new Date(user.lock_until) - Date.now()) / 60000);
+      return NextResponse.json(
+        { message: `Account locked. Try again in ${minutesLeft} minute(s).` },
+        { status: 423 }
+      );
     }
-    
-    // Generate tokens
-    const token = generateToken(user.id, user.email);
-    const refreshToken = generateRefreshToken(user.id);
-    
-    // Update last login
-    await sql`
-      UPDATE users 
-      SET last_login = NOW(), 
-          device_id = ${deviceDna || user.device_id},
-          location = ${locationCountry || user.location}
-      WHERE id = ${user.id}
-    `;
-    
+
+    const isMatch = await User.comparePassword(password, user.password);
+    if (!isMatch) {
+      await User.incrementFailedAttempts(user.id, user.failed_login_attempts);
+      return NextResponse.json({ message: "Invalid credentials" }, { status: 401 });
+    }
+
+    await User.resetFailedAttempts(user.id);
+
+    // ── Geo Analysis ───────────────────────────────────────────────────────────
+    const ip = getClientIP(request);
+    const userAgent = request.headers.get("user-agent") || "";
+    const geo = await getGeoFromIP(ip);
+    const lastLogin = await LoginHistory.getLastLogin(user.id);
+
+    const { riskScore, riskFlags } = analyzeRisk(geo, lastLogin, user.trusted_countries);
+
+    const sessionData = {
+      ip, ...(geo || {}), riskScore, riskFlags, userAgent,
+      verified: !requiresExtraVerification(riskScore),
+    };
+
+    // ── High risk → OTP required ───────────────────────────────────────────────
+    if (requiresExtraVerification(riskScore)) {
+      const otp = generateOTP();
+      const expiresAt = new Date(
+        Date.now() + (parseInt(process.env.OTP_EXPIRES_MINUTES) || 10) * 60000
+      );
+
+      await User.setOTP(user.id, otp, "geo_verify", expiresAt);
+      await LoginHistory.create(user.id, { ...sessionData, verified: false });
+      await sendGeoVerificationEmail(user.email, otp, geo);
+
+      return NextResponse.json({
+        requiresVerification: true,
+        userId: user.id,
+        riskScore,
+        riskFlags,
+        geoInfo: {
+          city: geo?.city,
+          country: geo?.country,
+          isVPN: geo?.isVPN,
+          isProxy: geo?.isProxy,
+        },
+        message: "Suspicious login detected. Check your email for a verification code.",
+      }, { status: 202 });
+    }
+
+    // ── Low risk → issue token ─────────────────────────────────────────────────
+    await LoginHistory.create(user.id, sessionData);
+
     return NextResponse.json({
-      success: true,
-      token,
-      refreshToken,
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.full_name,
-        phone: user.phone,
-        balance: user.balance
-      },
-      requiresAdditionalVerification: false,
-      risk: { score: riskAnalysis.score, reasons: riskAnalysis.messages },
-      knownDevice: true,
-      hasDeviceKey: false
+      requiresVerification: false,
+      token: generateToken(user.id),
+      riskScore,
+      riskFlags,
+      user: { id: user.id, fullName: user.full_name, email: user.email },
     });
-    
-  } catch (error) {
-    console.error('Login error:', error);
-    return NextResponse.json({ error: 'Login failed.', detail: error.message }, { status: 500 });
+
+  } catch (err) {
+    console.error("Login error:", err);
+    return NextResponse.json({ message: "Server error" }, { status: 500 });
   }
 }
