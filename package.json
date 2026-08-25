@@ -1,6 +1,7 @@
 {
-  "name": "cryptog",
-  "version": "0.1.0",
+  "name": "payshield",
+  "version": "1.0.0",
+  "description": "PayShield - Next-Generation AI-Driven Active Payment Defense & Fraud Prevention Platform",
   "private": true,
   "scripts": {
     "dev": "next dev",
